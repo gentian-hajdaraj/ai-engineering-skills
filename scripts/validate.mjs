@@ -21,7 +21,7 @@ for (const name of required) {
     assert.equal(fm[1], name);
     assert.ok(fm[2].length >= 60 && fm[2].length <= 1024, 'Description should be useful and concise');
     assert.ok(md.length >= 500, 'Skill must include actual procedures');
-    assert.match(md, /## (Output contract|Required handoff template)/, 'Skill should define inspectable output');
+    assert.match(md, /^## (Output contract|Required handoff template|Gate semantics|Publication memo)$/m, 'Skill should define inspectable output');
     assert.doesNotMatch(md, /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/);
     assert.doesNotMatch(md, /sk-[A-Za-z0-9_-]{24,}/);
     assert.doesNotMatch(md, /ghp_[A-Za-z0-9]{30,}/);
