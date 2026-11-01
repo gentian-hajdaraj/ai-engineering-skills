@@ -58,14 +58,20 @@ jobs:
         id: original
         continue-on-error: true
         run: |
+          set +e
           echo "## Existing target tests" > original-tests.log
           echo "### Control" >> original-tests.log
           (cd candidate-control && node --test tools/visibility-benchmark-lite/test/engine.test.cjs) >> original-tests.log 2>&1
-          echo "Control exit: $?" >> original-tests.log
+          control_exit=$?
+          echo "Control exit: $control_exit" >> original-tests.log
           echo "### Treatment" >> original-tests.log
           (cd candidate-treatment && node --test tools/visibility-benchmark-lite/test/engine.test.cjs) >> original-tests.log 2>&1
-          echo "Treatment exit: $?" >> original-tests.log
+          treatment_exit=$?
+          echo "Treatment exit: $treatment_exit" >> original-tests.log
+          echo "control_exit=$control_exit" >> "$GITHUB_OUTPUT"
+          echo "treatment_exit=$treatment_exit" >> "$GITHUB_OUTPUT"
           cat original-tests.log
+          test "$control_exit" -eq 0 && test "$treatment_exit" -eq 0
       - name: Publish inspectable run summary
         if: always()
         env:
@@ -79,7 +85,8 @@ jobs:
             echo "- Treatment ref: `$TREATMENT_REF`"
             echo "- Held-out tests control: ${{ steps.control.outcome }}"
             echo "- Held-out tests treatment: ${{ steps.treatment.outcome }}"
-            echo "- Existing suites command: ${{ steps.original.outcome }}"
+            echo "- Original suite exit control: ${{ steps.original.outputs.control_exit }}" 
+          echo "- Original suite exit treatment: ${{ steps.original.outputs.treatment_exit }}"
             echo ""
             echo "See archived logs for individual test passes; this workflow **does not invoke Codex**."
           } >> "$GITHUB_STEP_SUMMARY"
