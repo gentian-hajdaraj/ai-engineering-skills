@@ -60,6 +60,19 @@ node --test scripts/validate.mjs
 
 You don't need Node.js on your production hosting environment; CI can run the tests for this source-only repository.
 
+## Real-world Codex evaluations
+
+We are testing whether these skills actually improve outcomes rather than assuming that more instructions mean better code.
+
+**[Pilot 001 — CSV parser hardening](evals/codex-csv-001/README.md)** compares two independent Codex attempts (without vs. with `release-regression-gate`) on a real bug in the public Visibility Benchmark Lite project. A held-out test suite has reproduced the two known defects on the original source. **Codex attempts and comparative outcomes are not yet available.**
+
+- [Task specification](evals/codex-csv-001/TASK.md)
+- [Codex run prompts](evals/codex-csv-001/CODEX-PROMPTS.md)
+- [Preregistered scoring rules](evals/codex-csv-001/README.md)
+- [Results — pending](evals/codex-csv-001/RESULTS.md)
+
+No paid API keys or automatic agent runs are used by this evaluation harness; only deterministic tests run in GitHub Actions.
+
 ## Versioning
 
 The **v0.1.0** initial public edition includes four skills and a structural validation suite. Skill instructions may evolve; document changes in [CHANGELOG.md](CHANGELOG.md). Tags/releases, if any, are announced in [GitHub Releases](https://github.com/gentian-hajdaraj/ai-engineering-skills/releases).
