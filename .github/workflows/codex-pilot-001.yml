@@ -1,0 +1,95 @@
+name: Codex pilot 001 held-out evaluator
+on:
+  workflow_dispatch:
+    inputs:
+      control_ref:
+        description: "Control candidate SHA (or exact branch)"
+        required: true
+        type: string
+      treatment_ref:
+        description: "Treatment candidate SHA (or exact branch)"
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout independent evaluator
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout control candidate
+        uses: actions/checkout@v4
+        with:
+          repository: gentian-hajdaraj/ai-search-visibility-italia
+          ref: ${{ inputs.control_ref }}
+          path: candidate-control
+          persist-credentials: false
+      - name: Checkout treatment candidate
+        uses: actions/checkout@v4
+        with:
+          repository: gentian-hajdaraj/ai-search-visibility-italia
+          ref: ${{ inputs.treatment_ref }}
+          path: candidate-treatment
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Evaluate control (read-only)
+        id: control
+        continue-on-error: true
+        env:
+          TARGET_CORE: candidate-control/tools/visibility-benchmark-lite/benchmark-core.js
+        run: |
+          node --test evals/codex-csv-001/acceptance.test.cjs 2>&1 | tee control-eval.log
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Evaluate treatment (read-only)
+        id: treatment
+        continue-on-error: true
+        env:
+          TARGET_CORE: candidate-treatment/tools/visibility-benchmark-lite/benchmark-core.js
+        run: |
+          node --test evals/codex-csv-001/acceptance.test.cjs 2>&1 | tee treatment-eval.log
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Run existing test suites
+        id: original
+        continue-on-error: true
+        run: |
+          echo "## Existing target tests" > original-tests.log
+          echo "### Control" >> original-tests.log
+          (cd candidate-control && node --test tools/visibility-benchmark-lite/test/engine.test.cjs) >> original-tests.log 2>&1
+          echo "Control exit: $?" >> original-tests.log
+          echo "### Treatment" >> original-tests.log
+          (cd candidate-treatment && node --test tools/visibility-benchmark-lite/test/engine.test.cjs) >> original-tests.log 2>&1
+          echo "Treatment exit: $?" >> original-tests.log
+          cat original-tests.log
+      - name: Publish inspectable run summary
+        if: always()
+        env:
+          CONTROL_REF: ${{ inputs.control_ref }}
+          TREATMENT_REF: ${{ inputs.treatment_ref }}
+        run: |
+          {
+            echo "## Pilot 001 — held-out functional checks"
+            echo ""
+            echo "- Control ref: `$CONTROL_REF`"
+            echo "- Treatment ref: `$TREATMENT_REF`"
+            echo "- Held-out tests control: ${{ steps.control.outcome }}"
+            echo "- Held-out tests treatment: ${{ steps.treatment.outcome }}"
+            echo "- Existing suites command: ${{ steps.original.outcome }}"
+            echo ""
+            echo "See archived logs for individual test passes; this workflow **does not invoke Codex**."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload complete test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-pilot-001-evaluation
+          path: |
+            control-eval.log
+            treatment-eval.log
+            original-tests.log
+          retention-days: 30

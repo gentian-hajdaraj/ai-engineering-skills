@@ -1,0 +1,44 @@
+name: Validate CSV pilot defect reproduction
+on:
+  pull_request:
+    paths:
+      - "evals/codex-csv-001/**"
+      - ".github/workflows/codex-pilot-001-canary.yml"
+  push:
+    paths:
+      - "evals/codex-csv-001/**"
+      - ".github/workflows/codex-pilot-001-canary.yml"
+permissions:
+  contents: read
+jobs:
+  test-evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: gentian-hajdaraj/ai-search-visibility-italia
+          ref: 5eec59e6d86f936d98cc59fca2a4a5f60419d83a
+          path: original-source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove known defect still exists at pinned starting revision
+        env:
+          TARGET_CORE: original-source/tools/visibility-benchmark-lite/benchmark-core.js
+        run: |
+          set +e
+          node --test evals/codex-csv-001/acceptance.test.cjs > canary.log 2>&1
+          code=$?
+          set -e
+          cat canary.log
+          # This baseline is expected to fail exactly the two new strict-quote cases.
+          test "$code" -ne 0
+          grep -q 'not ok 1 - C01' canary.log
+          grep -q 'not ok 2 - C02' canary.log
+          grep -q '# tests 10' canary.log
+          grep -q '# fail 2' canary.log
+          grep -q '# pass 8' canary.log
