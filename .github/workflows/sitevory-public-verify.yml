@@ -1,9 +1,9 @@
 # Sitevory CI ONLY: no secrets, no deploy, no WordPress calls
-name: Sitevory OAuth public build verification
+name: Sitevory multi-site isolated foundation build (no deploy)
 on:
   push:
     branches:
-      - 'ci/sitevory-oauth-public-20261118'
+      - 'ci/sitevory-multisite-foundation-20261118'
     paths:
       - 'sitevory-ci/**'
       - '.github/workflows/sitevory-public-verify.yml'
