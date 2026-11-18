@@ -83,6 +83,33 @@ jobs:
           }
           if (problem) process.exitCode = 1;
           NODE
+      - name: Verify ChatGPT OAuth metadata compatibility (public discovery only)
+        env:
+          SITEVORY_BASE: https://sitevory-mcp.polished-dust-5ee4.workers.dev
+        run: |
+          node --input-type=module <<'NODE'
+          const base = process.env.SITEVORY_BASE;
+          const options = {headers:{Accept:'application/json'}, signal:AbortSignal.timeout(10000)};
+          const [authorization, protectedResource] = await Promise.all([
+            fetch(base+'/.well-known/oauth-authorization-server',options).then(x=>x.json()),
+            fetch(base+'/.well-known/oauth-protected-resource',options).then(x=>x.json())
+          ]);
+          const checks={
+            issuer:authorization.issuer===base,
+            authorization_endpoint:authorization.authorization_endpoint?.startsWith(base+'/'),
+            token_endpoint:authorization.token_endpoint?.startsWith(base+'/'),
+            pkce_s256:authorization.code_challenge_methods_supported?.includes('S256'),
+            dynamic_client_registration:authorization.registration_endpoint?.startsWith(base+'/'),
+            protected_resource:protectedResource.resource===base+'/mcp',
+            authorization_server_link:protectedResource.authorization_servers?.includes(base)
+          };
+          console.log('SITEVORY_OAUTH_DISCOVERY',JSON.stringify(checks));
+          console.log('SITEVORY_REFRESH_SUPPORT', JSON.stringify({
+            offline_access_advertised:authorization.scopes_supported?.includes('offline_access')||false,
+            refresh_grant_advertised:authorization.grant_types_supported?.includes('refresh_token')||false
+          }));
+          if (Object.values(checks).some(x=>!x)) process.exitCode=1;
+          NODE
       - name: Confirm production deploy is impossible in this public mirror
         working-directory: sitevory-ci
         run: |
