@@ -22,4 +22,9 @@ replaceOnce('src/oauth-foundation.ts',
 replaceOnce('src/wordpress.ts',
   'body: input === undefined ? undefined : JSON.stringify(input),',
   '...(input === undefined ? {} : {body: JSON.stringify(input)}),');
-console.log('Applied 2 TypeScript compatibility fixes to verified source snapshot.');
+// Sitevory OAuth regression: the Cloudflare provider serializes authorization codes
+// as colon-separated components, so a userId containing ':' breaks token exchange.
+replaceOnce('src/oauth-foundation.ts',
+  'userId:`${grant.siteId}:${grant.ownerUserId}`',
+  'userId:`${grant.siteId}_${grant.ownerUserId}`');
+console.log('Applied TypeScript compatibility and OAuth principal-format fixes.');
