@@ -1,0 +1,39 @@
+# Sitevory CI ONLY: no secrets, no deploy, no WordPress calls
+name: Sitevory OAuth public build verification
+on:
+  push:
+    branches:
+      - 'ci/sitevory-oauth-public-20261118'
+    paths:
+      - 'sitevory-ci/**'
+      - '.github/workflows/sitevory-public-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unpack the public sanitized source archive
+        run: |
+          mkdir -p sitevory-ci
+          cat sitevory-ci/source.part*.b64 | base64 -d > sitevory-ci/source.tar.gz
+          echo '1d400d9cbd4a15f7441df3d646a1b6d3311af10235dbf470cc3d1bf5c22cdf7c  sitevory-ci/source.tar.gz' | sha256sum -c -
+          tar -xzf sitevory-ci/source.tar.gz -C sitevory-ci
+      - name: Install exact dependencies and generate verified lockfile (no publish)
+        working-directory: sitevory-ci
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --no-audit --no-fund
+      - name: Run strict typecheck and Wrangler build dry-run
+        working-directory: sitevory-ci
+        run: npm run typecheck && npm run dry-run
+      - name: Confirm production deploy is impossible in this public mirror
+        working-directory: sitevory-ci
+        run: |
+          if npm run deploy; then echo 'ERROR: deployment unexpectedly enabled' >&2; exit 1; fi
