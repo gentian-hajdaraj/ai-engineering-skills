@@ -35,3 +35,16 @@ test('worker public mirror only uses example WordPress origin, no secret vars',(
   assert.ok(!Object.hasOwn(wrangler.vars??{},'SITEVORY_WP_USER'));
   assert.ok(!Object.hasOwn(wrangler.vars??{},'MCP_BRIDGE_BEARER_TOKEN'));
 });
+
+// Cloudflare Workers OAuth provider code format uses colon-delimited fields.
+// A colon inside userId creates four segments and token exchange rejects it
+// with invalid_grant / Invalid authorization code format.
+test('OAuth principal cannot contain colon delimiter',()=>{
+  assert.match(auth,/userId:`\$\{grant\.siteId\}_\$\{grant\.ownerUserId\}`/);
+  assert.doesNotMatch(auth,/userId:`\$\{grant\.siteId\}:\$\{grant\.ownerUserId\}`/);
+  const siteId='98c74638-b46d-4132-96fc-848523515002';
+  const ownerId='4';
+  const principal=`${siteId}_${ownerId}`;
+  assert.ok(!principal.includes(':'));
+  assert.equal(principal.split(':').length,1);
+});
