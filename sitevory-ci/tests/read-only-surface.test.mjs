@@ -42,7 +42,7 @@ test('worker public mirror only uses example WordPress origin, no secret vars',(
 test('OAuth principal cannot contain colon delimiter',()=>{
   assert.match(auth,/userId:`\$\{grant\.siteId\}_\$\{grant\.ownerUserId\}`/);
   assert.doesNotMatch(auth,/userId:`\$\{grant\.siteId\}:\$\{grant\.ownerUserId\}`/);
-  const siteId='98c74638-b46d-4132-96fc-848523515002';
+  const siteId='11111111-1111-4111-8111-111111111111';
   const ownerId='4';
   const principal=`${siteId}_${ownerId}`;
   assert.ok(!principal.includes(':'));
@@ -58,4 +58,15 @@ test('read_content avoids MCP content-field collision without losing WordPress d
   // Site info, list and SEO must retain their pre-existing response format.
   assert.match(server,/read\('\/sitevory\/v1\/site'\)/);
   assert.match(server,/read\(`\/sitevory\/v1\/content\/\$\{id\}\/seo`\)/);
+});
+
+test('isolated worker uses immutable WordPress identity in OAuth and every protected request',()=>{
+  const env = readFileSync(path.join(dir,'src/env.ts'),'utf8');
+  assert.match(env,/SITEVORY_WP_EXPECTED_SITE_ID/);
+  assert.match(env,/export function expectedSiteId/);
+  assert.match(auth,/data\.site_id!==expectedSiteId\(env\)/);
+  assert.match(auth,/props\.siteId!==expectedSiteId\(env\)/);
+  assert.match(auth,/current\.site_id !== props\.siteId/);
+  assert.equal(wrangler.vars?.SITEVORY_WP_EXPECTED_SITE_ID,'11111111-1111-4111-8111-111111111111');
+  assert.equal(wrangler.workers_dev,false);
 });
