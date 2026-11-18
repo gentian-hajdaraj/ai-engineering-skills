@@ -30,7 +30,7 @@ test('authorization endpoint enforces exact incoming origin',()=>{
 test('worker public mirror only uses example WordPress origin, no secret vars',()=>{
   assert.equal(wrangler.vars?.SITEVORY_WP_ORIGIN,'https://wp.example.org');
   assert.equal(wrangler.vars?.SITEVORY_MODE,'pilot-readonly');
-  assert.equal(wrangler.workers_dev,true);
+  assert.equal(wrangler.workers_dev,false,'Public mirror must never accept public traffic');
   assert.ok(!Object.hasOwn(wrangler.vars??{},'SITEVORY_WP_APP_PASSWORD'));
   assert.ok(!Object.hasOwn(wrangler.vars??{},'SITEVORY_WP_USER'));
   assert.ok(!Object.hasOwn(wrangler.vars??{},'MCP_BRIDGE_BEARER_TOKEN'));
