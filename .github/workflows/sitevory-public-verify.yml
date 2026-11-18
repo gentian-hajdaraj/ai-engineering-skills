@@ -34,7 +34,7 @@ jobs:
           const pkg = require('./package.json');
           const lock = require('./package-lock.json');
           if (lock.lockfileVersion !== 3) process.exit(1);
-          for (const [name, version] of Object.entries(pkg.dependencies)) {
+          for (const [name, version] of Object.entries({...pkg.dependencies,...pkg.devDependencies})) {
             if (lock.packages?.['node_modules/' + name]?.version !== version) {
               console.error('Lockfile mismatch for', name);
               process.exit(1);
@@ -46,9 +46,12 @@ jobs:
       - name: Reproducible install with committed lockfile (no publish)
         working-directory: sitevory-ci
         run: npm ci --no-audit --no-fund
-      - name: Run strict typecheck and Wrangler build dry-run
+      - name: Run portable OAuth security tests, strict typecheck and Wrangler build dry-run
         working-directory: sitevory-ci
-        run: npm run typecheck && npm run dry-run
+        run: |
+          node --test tests/pairing.test.mjs tests/read-only-surface.test.mjs
+          npm run typecheck
+          npm run dry-run
       - name: Confirm production deploy is impossible in this public mirror
         working-directory: sitevory-ci
         run: |
