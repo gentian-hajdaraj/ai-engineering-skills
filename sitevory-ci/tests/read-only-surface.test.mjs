@@ -48,3 +48,14 @@ test('OAuth principal cannot contain colon delimiter',()=>{
   assert.ok(!principal.includes(':'));
   assert.equal(principal.split(':').length,1);
 });
+
+test('read_content avoids MCP content-field collision without losing WordPress data',()=>{
+  // WordPress returns {id,type,title,content,...}. At top level, "content"
+  // can be mistaken for CallToolResult.content by the plugin transport.
+  assert.match(server,/const read = async \(path:string, documentEnvelope=false\)/);
+  assert.match(server,/return response\(documentEnvelope \? \{document:data\} : data\)/);
+  assert.match(server,/read\(`\/sitevory\/v1\/content\/\$\{id\}`, true\)/);
+  // Site info, list and SEO must retain their pre-existing response format.
+  assert.match(server,/read\('\/sitevory\/v1\/site'\)/);
+  assert.match(server,/read\(`\/sitevory\/v1\/content\/\$\{id\}\/seo`\)/);
+});
