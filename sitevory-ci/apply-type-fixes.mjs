@@ -27,4 +27,16 @@ replaceOnce('src/wordpress.ts',
 replaceOnce('src/oauth-foundation.ts',
   'userId:`${grant.siteId}:${grant.ownerUserId}`',
   'userId:`${grant.siteId}_${grant.ownerUserId}`');
-console.log('Applied TypeScript compatibility and OAuth principal-format fixes.');
+// Preserve the WordPress REST payload but do not expose an object with a
+// top-level "content" field as a tool result. That field collides with the MCP
+// CallToolResult.content transport convention in ChatGPT's plugin adapter.
+replaceOnce('src/server.ts',
+  "try { return response(await wpRequest(env,path)); } catch { return fail(); }",
+  "try { const data = await wpRequest(env,path); return response(documentEnvelope ? {document:data} : data); } catch { return fail(); }");
+replaceOnce('src/server.ts',
+  "const read = async (path:string):Promise<CallToolResult> => {",
+  "const read = async (path:string, documentEnvelope=false):Promise<CallToolResult> => {");
+replaceOnce('src/server.ts',
+  "}, async ({id}) => read(`/sitevory/v1/content/${id}`));",
+  "}, async ({id}) => read(`/sitevory/v1/content/${id}`, true));");
+console.log('Applied compatibility, OAuth and read_content tool result envelope fixes.');
