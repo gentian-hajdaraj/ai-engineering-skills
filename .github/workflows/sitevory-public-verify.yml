@@ -19,12 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Unpack the public sanitized source archive
+      - name: Unpack and verify public sanitized source archive
         run: |
           mkdir -p sitevory-ci
           cat sitevory-ci/source.part*.b64 | base64 -d > sitevory-ci/source.tar.gz
           echo '1d400d9cbd4a15f7441df3d646a1b6d3311af10235dbf470cc3d1bf5c22cdf7c  sitevory-ci/source.tar.gz' | sha256sum -c -
           tar -xzf sitevory-ci/source.tar.gz -C sitevory-ci
+          node sitevory-ci/apply-type-fixes.mjs
       - name: Install exact dependencies and generate verified lockfile (no publish)
         working-directory: sitevory-ci
         run: |
