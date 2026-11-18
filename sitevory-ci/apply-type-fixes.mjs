@@ -42,7 +42,7 @@ replaceOnce('src/server.ts',
 // New isolated-Worker identity gate. Public mirror uses a synthetic example UUID.
 replaceOnce('src/env.ts',
   '  SITEVORY_MODE: string;',
-  '  SITEVORY_MODE: string;\\n  SITEVORY_WP_EXPECTED_SITE_ID: string;');
+  '  SITEVORY_MODE: string;\n  SITEVORY_WP_EXPECTED_SITE_ID: string;');
 const envFile=new URL('src/env.ts',root);
 let envCode=readFileSync(envFile,'utf8');
 if(envCode.includes('function expectedSiteId'))throw Error('Already pinned');
@@ -59,7 +59,7 @@ replaceOnce('src/oauth-foundation.ts',
   "import {wpOrigin,expectedSiteId} from './env';");
 replaceOnce('src/oauth-foundation.ts',
   'const data=exchange as {site_id:string;user_id:number;scope:string[]};',
-  "const data=exchange as {site_id:string;user_id:number;scope:string[]};\\n    if(data.site_id!==expectedSiteId(env))throw Error('Site pin mismatch');");
+  "const data=exchange as {site_id:string;user_id:number;scope:string[]};\n    if(data.site_id!==expectedSiteId(env))throw Error('Site pin mismatch');");
 replaceOnce('src/oauth-foundation.ts',
   "typeof props.siteId!=='string' || typeof props.ownerUserId!=='string'",
   "typeof props.siteId!=='string' || props.siteId!==expectedSiteId(env) || typeof props.ownerUserId!=='string'");
@@ -67,5 +67,5 @@ const configUrl=new URL('wrangler.jsonc',root);
 const conf=JSON.parse(readFileSync(configUrl,'utf8'));
 if(conf.workers_dev!==false||conf.vars?.SITEVORY_WP_ORIGIN!=='https://wp.example.org')throw Error('Unexpected public mirror configuration');
 conf.vars.SITEVORY_WP_EXPECTED_SITE_ID='11111111-1111-4111-8111-111111111111';
-writeFileSync(configUrl,JSON.stringify(conf,null,2)+'\\n');
+writeFileSync(configUrl,JSON.stringify(conf,null,2)+'\n');
 console.log('Applied isolated Worker immutable site pin (CI-only, no deploy).');
