@@ -31,6 +31,13 @@ jobs:
         run: |
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --no-audit --no-fund
+      - name: Emit verified compressed dependency lockfile to CI logs (no artifact storage)
+        working-directory: sitevory-ci
+        run: |
+          node -e "const l=require('./package-lock.json');if(l.lockfileVersion!==3||!l.packages?.['node_modules/@cloudflare/workers-oauth-provider'])process.exit(1)"
+          printf 'SITEVORY_LOCKFILE_GZIP_BASE64_BEGIN\\n'
+          gzip -n -c package-lock.json | base64 -w0
+          printf '\\nSITEVORY_LOCKFILE_GZIP_BASE64_END\\n'
       - name: Run strict typecheck and Wrangler build dry-run
         working-directory: sitevory-ci
         run: npm run typecheck && npm run dry-run
