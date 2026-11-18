@@ -54,6 +54,35 @@ jobs:
           gzip -n -c "$BUNDLE" | base64 -w0
           echo
           echo SITEVORY_BUNDLE_GZIP_BASE64_END
+      - name: Sitevory live metadata smoke test (public GET, no credentials)
+        env:
+          SITEVORY_BASE: https://sitevory-mcp.polished-dust-5ee4.workers.dev
+        run: |
+          node --input-type=module <<'NODE'
+          const paths = ['/.well-known/oauth-authorization-server', '/.well-known/oauth-protected-resource', '/mcp'];
+          let problem = false;
+          for (const path of paths) {
+            try {
+              const r = await fetch(process.env.SITEVORY_BASE + path, {
+                method: 'GET', redirect: 'manual',
+                headers: { 'Accept': 'application/json' },
+                signal: AbortSignal.timeout(12000)
+              });
+              const safe = {
+                path, status: r.status,
+                content_type: (r.headers.get('content-type') || '').slice(0, 75),
+                oauth_challenge: Boolean(r.headers.get('www-authenticate')?.includes('Bearer'))
+              };
+              console.log('SITEVORY_SMOKE', JSON.stringify(safe));
+              if (r.status >= 500 || (path.includes('.well-known') && r.status !== 200) || (path === '/mcp' && ![401,405].includes(r.status))) problem = true;
+              await r.body?.cancel();
+            } catch (e) {
+              console.log('SITEVORY_SMOKE_FAILURE', path, String(e).slice(0, 160));
+              problem = true;
+            }
+          }
+          if (problem) process.exitCode = 1;
+          NODE
       - name: Confirm production deploy is impossible in this public mirror
         working-directory: sitevory-ci
         run: |
