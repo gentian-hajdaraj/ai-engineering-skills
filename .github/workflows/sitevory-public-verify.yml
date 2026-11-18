@@ -52,6 +52,22 @@ jobs:
           node --test tests/pairing.test.mjs tests/read-only-surface.test.mjs
           npm run typecheck
           npm run dry-run
+      - name: Export sanitized compiled Worker bundle to logs (no artifact storage)
+        working-directory: sitevory-ci
+        run: |
+          BUNDLE="$(find .wrangler-dry-run -type f -name '*.js' | head -n 1)"
+          test -n "$BUNDLE" && test -f "$BUNDLE"
+          node - "$BUNDLE" <<'NODE'
+          const fs = require('node:fs');
+          const code = fs.readFileSync(process.argv[2], 'utf8');
+          if (code.includes('leadpower.it') || code.includes('5d77b860d98849a3b94dd77fcfd72ff8')) throw Error('Unsanitized bundle');
+          console.log('PUBLIC_BUNDLE_SANITIZED_OK');
+          NODE
+          sha256sum "$BUNDLE"
+          echo SITEVORY_BUNDLE_GZIP_BASE64_BEGIN
+          gzip -n -c "$BUNDLE" | base64 -w0
+          echo
+          echo SITEVORY_BUNDLE_GZIP_BASE64_END
       - name: Confirm production deploy is impossible in this public mirror
         working-directory: sitevory-ci
         run: |
