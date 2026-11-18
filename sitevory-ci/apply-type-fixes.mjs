@@ -12,7 +12,7 @@ function replaceOnce(file, oldText, newText) {
 }
 replaceOnce('src/oauth-foundation.ts',
   'const protectedHandler:ExportedHandler<OAuthEnv,unknown,unknown,SitevoryGrant>=',
-  'const protectedHandler:ExportedHandler<OAuthEnv>=');
+  "const protectedHandler:Pick<Required<ExportedHandler<OAuthEnv>>, 'fetch'>=");
 replaceOnce('src/oauth-foundation.ts',
   'const props=ctx.props;',
   'const props=ctx.props as SitevoryGrant | undefined;');
