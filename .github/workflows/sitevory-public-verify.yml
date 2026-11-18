@@ -26,18 +26,26 @@ jobs:
           echo '1d400d9cbd4a15f7441df3d646a1b6d3311af10235dbf470cc3d1bf5c22cdf7c  sitevory-ci/source.tar.gz' | sha256sum -c -
           tar -xzf sitevory-ci/source.tar.gz -C sitevory-ci
           node sitevory-ci/apply-type-fixes.mjs
-      - name: Install exact dependencies and generate verified lockfile (no publish)
+      - name: Restore committed lockfile and verify pinned runtime dependencies
         working-directory: sitevory-ci
         run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          npm ci --no-audit --no-fund
-      - name: Emit verified compressed dependency lockfile to CI logs (no artifact storage)
+          base64 -d package-lock.json.gz.b64 | gzip -d > package-lock.json
+          node - <<'NODE'
+          const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
+          if (lock.lockfileVersion !== 3) process.exit(1);
+          for (const [name, version] of Object.entries(pkg.dependencies)) {
+            if (lock.packages?.['node_modules/' + name]?.version !== version) {
+              console.error('Lockfile mismatch for', name);
+              process.exit(1);
+            }
+          }
+          console.log('LOCKFILE_OK; sha256 recorded in next step');
+          NODE
+          sha256sum package-lock.json
+      - name: Reproducible install with committed lockfile (no publish)
         working-directory: sitevory-ci
-        run: |
-          node -e "const l=require('./package-lock.json');if(l.lockfileVersion!==3||!l.packages?.['node_modules/@cloudflare/workers-oauth-provider'])process.exit(1)"
-          printf 'SITEVORY_LOCKFILE_GZIP_BASE64_BEGIN\\n'
-          gzip -n -c package-lock.json | base64 -w0
-          printf '\\nSITEVORY_LOCKFILE_GZIP_BASE64_END\\n'
+        run: npm ci --no-audit --no-fund
       - name: Run strict typecheck and Wrangler build dry-run
         working-directory: sitevory-ci
         run: npm run typecheck && npm run dry-run
